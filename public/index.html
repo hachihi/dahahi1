@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chấm công Dahahi</title>
+<style>
+:root{--bg:#f2f4f3;--ink:#16211d;--mut:#66736d;--line:#dde3e0;--ac:#0d6b57;--ac2:#e7f2ef;--bad:#b3261e;--card:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#121816;--ink:#e6ece9;--mut:#8b9a93;--line:#26312d;--ac:#3cc2a1;--ac2:#18332d;--bad:#ff8a80;--card:#1a221f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI",system-ui,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:24px;padding:0 20px;position:sticky;top:0;z-index:5;flex-wrap:wrap}
+h1{font-size:16px;margin:0;padding:14px 0}nav{display:flex;gap:4px}
+nav button{background:none;border:0;border-bottom:3px solid transparent;padding:16px 12px 13px;font:inherit;color:var(--mut);cursor:pointer}
+nav button.on{color:var(--ac);border-color:var(--ac);font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:20px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.grow{flex:1}
+button.b,label.b{background:var(--ac);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer;display:inline-block}
+button.g,label.g{background:var(--card);color:var(--ink);border:1px solid var(--line)}button.d{background:none;color:var(--bad);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input,select{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+.t{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:70vh}
+table{border-collapse:collapse;width:100%}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--ac2);font-weight:600}td.c{text-align:center;font-size:12px;color:var(--mut)}
+.av{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--ac2);display:block}
+.tag{background:var(--ac2);color:var(--ac);border-radius:4px;padding:1px 7px;font-size:12px;margin-right:4px}.warn{color:var(--bad)}
+.empty{padding:40px;text-align:center;color:var(--mut)}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);width:min(440px,94vw);padding:20px}
+dialog::backdrop{background:#0008}dialog label{display:block;margin:10px 0 3px;color:var(--mut);font-size:12px}dialog input:not([type=checkbox]){width:100%}
+.ck label{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:14px;margin:4px 0}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;display:none;max-width:90vw;z-index:9}
+.cf label{display:block;margin:10px 0 3px;color:var(--mut);font-size:12px}.cf input:not([type=checkbox]){width:100%}.cf label.ck2{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:13px}
+#warn{background:#fff3cd;color:#5c4400;padding:12px 20px;border-bottom:1px solid #e6d08a}
+#pv{width:72px;height:72px;border-radius:8px;object-fit:cover;background:var(--ac2)}
+</style></head><body>
+<header><h1>Chấm công Dahahi <span id="demo" class="tag" hidden>Demo</span></h1>
+<nav id="nav"><button data-v="set">Kết nối máy</button><button data-v="emp" class="on">Nhân viên</button><button data-v="logs">Lịch sử chấm công</button><button data-v="rep">Bảng công</button><button data-v="dev">Thiết bị</button></nav></header>
+<div id="warn" hidden>Bạn đang mở trực tiếp file index.html nên app chưa hoạt động. Hãy bấm đúp <b>chay.bat</b> (Windows) hoặc chạy <code>node server.js</code>, rồi mở <b>http://localhost:3000</b> trong trình duyệt.</div><main id="main"></main><div id="toast" role="status"></div>
+<dialog id="dlg"><form method="dialog" id="f" onsubmit="return false">
+<h3 style="margin:0 0 6px" id="dt">Nhân viên</h3>
+<label>Mã nhân viên (duy nhất trên thiết bị)</label><input id="fid" required>
+<label>Họ tên (tối đa 32 ký tự)</label><input id="fname" maxlength="32" required>
+<label>Ảnh khuôn mặt (chụp rõ mặt, nhìn thẳng)</label><div style="display:flex;gap:10px;align-items:center"><img id="pv" alt=""><input type="file" id="fph" accept="image/*"></div>
+<label>Được chấm công từ (để trống nếu không giới hạn)</label><input type="datetime-local" id="ffrom">
+<label>Đến</label><input type="datetime-local" id="fto">
+<label>Thiết bị</label><div class="ck" id="fm"></div>
+<div class="bar" style="margin:16px 0 0;justify-content:flex-end"><button class="b g" onclick="dlg.close()">Hủy</button><button class="b" id="fsave">Lưu và đẩy lên thiết bị</button></div></form></dialog>
+<script>
+const $=s=>document.querySelector(s),main=$('#main');let machines=[],emps=[],photo=null,start='08:30';
+const today=new Date().toISOString().slice(0,10),month=today.slice(0,7),mname=id=>machines.find(m=>m.MachineBoxId==id)?.MachineName||id;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t,ms=4000){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(e.t);e.t=setTimeout(()=>e.style.display='none',ms)}
+async function api(m,u,b){if(location.protocol==='file:')throw new Error('App chưa chạy: hãy chạy server (bấm đúp chay.bat) rồi mở http://localhost:3000');const r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined}),j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
+const run=async(f,ok)=>{try{const r=await f();if(ok)toast(ok(r));return r}catch(e){toast('Lỗi: '+e.message,7000)}};
+const fmtRes=r=>Object.entries(r||{}).map(([m,v])=>`${mname(m)}: ${v}`).join(' · ');
+// Thu nhỏ ảnh về ≤480px JPEG (thiết bị giới hạn gói dữ liệu ~1MB)
+const shrink=f=>new Promise((ok,no)=>{const i=new Image;i.onload=()=>{const k=Math.min(1,480/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.85).split(',')[1])};i.onerror=()=>no(new Error('Ảnh không đọc được'));i.src=URL.createObjectURL(f)});
+const download=u=>location.href=u;
+const pick=(accept,multi,cb)=>{const i=document.createElement('input');i.type='file';i.accept=accept;i.multiple=multi;i.onchange=()=>cb([...i.files]);i.click()};
+const mopts=(all)=>(all?'<option value="">Tất cả thiết bị</option>':'')+machines.map(m=>`<option value="${m.MachineBoxId}">${esc(m.MachineName)} (${m.MachineBoxId})</option>`).join('');
+
+// ---- Nhân viên ----
+async function vEmp(){
+  emps=await api('GET','/api/employees');const q=($('#q')?.value||'').toLowerCase();
+  main.innerHTML=`<div class="bar"><input id="q" placeholder="Tìm theo mã hoặc tên" value="${esc(q)}" oninput="vEmpTable()"><span class="grow"></span>
+  <button class="b" onclick="edit()">Thêm nhân viên</button>
+  <label class="b g">Nhập danh sách (CSV)<input hidden type="file" accept=".csv" onchange="impCsv(this.files[0])"></label>
+  <label class="b g">Tải ảnh hàng loạt<input hidden type="file" accept="image/*" multiple onchange="impPhotos([...this.files])"></label>
+  <button class="b g" onclick="download('/api/export/employees.csv')">Xuất CSV</button>
+  <button class="b g" onclick="pull()">Lấy từ thiết bị</button>
+  <button class="b g" onclick="pullCloud()">Lấy DS từ Dahahi</button></div><div class="t" id="tb"></div>`;vEmpTable()}
+function vEmpTable(){const q=$('#q').value.toLowerCase(),l=emps.filter(e=>(e.id+e.name).toLowerCase().includes(q));
+  $('#tb').innerHTML=l.length?`<table><tr><th></th><th>Mã</th><th>Họ tên</th><th>Thiết bị</th><th>Hiệu lực</th><th></th></tr>${l.map(e=>`<tr><td>${e.hasPhoto?`<img class="av" loading="lazy" src="/api/photo?id=${encodeURIComponent(e.id)}">`:'<div class="av"></div>'}</td><td>${esc(e.id)}</td><td>${esc(e.name)}${e.hasPhoto?'':' <span class="warn">chưa có ảnh</span>'}</td><td>${(e.machines||[]).map(m=>`<span class="tag">${esc(mname(m))}</span>`).join('')||'—'}</td><td>${e.from||e.to?esc((e.from||'…').replace('T',' ')+' → '+(e.to||'…').replace('T',' ')):'Không giới hạn'}</td><td><button class="b g" onclick='edit(${JSON.stringify(e.id)})'>Sửa</button> <button class="b d" onclick='del(${JSON.stringify(e.id)})'>Xóa</button></td></tr>`).join('')}</table>`:'<div class="empty">Chưa có nhân viên. Bấm “Thêm nhân viên”, nhập CSV, hoặc “Lấy từ thiết bị”.</div>'}
+function edit(id){const e=emps.find(x=>x.id==id)||{machines:[machines[0]?.MachineBoxId]};photo=null;
+  $('#dt').textContent=id?'Sửa nhân viên':'Thêm nhân viên';$('#fid').value=e.id||'';$('#fid').readOnly=!!id;$('#fname').value=e.name||'';$('#ffrom').value=e.from||'';$('#fto').value=e.to||'';$('#fph').value='';
+  $('#pv').src=id&&e.hasPhoto?'/api/photo?id='+encodeURIComponent(id)+'&t='+Date.now():'';
+  $('#fm').innerHTML=machines.map(m=>`<label><input type="checkbox" value="${m.MachineBoxId}" ${(e.machines||[]).includes(m.MachineBoxId)?'checked':''}>${esc(m.MachineName)}</label>`).join('')||'<span class="warn">Chưa tải được danh sách thiết bị</span>';dlg.showModal()}
+$('#fph').onchange=async e=>{if(e.target.files[0])run(async()=>{photo=await shrink(e.target.files[0]);$('#pv').src='data:image/jpeg;base64,'+photo})};
+$('#fsave').onclick=()=>run(async()=>{const b={id:$('#fid').value.trim(),name:$('#fname').value.trim(),from:$('#ffrom').value,to:$('#fto').value,machines:[...document.querySelectorAll('#fm input:checked')].map(i=>i.value)};if(photo)b.photo=photo;
+  const r=await api('POST','/api/employees',b);dlg.close();vEmp();return r},r=>r.warn||('Đã lưu · '+fmtRes(r.result)));
+const del=id=>confirm(`Xóa nhân viên ${id} khỏi danh sách và khỏi các thiết bị?`)&&run(async()=>{const r=await api('DELETE','/api/employees?id='+encodeURIComponent(id));vEmp();return r},r=>'Kết quả: '+fmtRes(r.result));
+const pull=()=>{const m=prompt('Nhập mã thiết bị (MachineBoxId) để lấy nhân viên về:\n'+machines.map(m=>m.MachineBoxId+' = '+m.MachineName).join('\n'),machines[0]?.MachineBoxId);m&&run(async()=>{toast('Đang lấy dữ liệu…',60000);const r=await api('POST','/api/pull',{m});vEmp();return r},r=>`Đã lấy ${r.count} nhân viên`)};
+const pullCloud=()=>run(async()=>{toast('Đang lấy danh sách…',60000);const r=await api('POST','/api/pull-cloud');vEmp();return r},r=>`Đã lấy ${r.count} nhân viên từ Dahahi. Thêm ảnh để đăng ký lên thiết bị.`);
+function csvParse(t){return t.replace(/^\ufeff/,'').split(/\r?\n/).filter(Boolean).map(l=>{const o=[];let c='',q=0;for(const ch of l){if(ch=='"')q=!q;else if((ch==','||ch==';')&&!q){o.push(c);c=''}else c+=ch}o.push(c);return o})}
+function impCsv(f){if(!f)return;run(async()=>{const rows=csvParse(await f.text()),h=rows.shift().map(x=>x.trim().toLowerCase());let n=0;
+  for(const r of rows){const o=Object.fromEntries(h.map((k,i)=>[k,(r[i]||'').trim()]));if(!o.id||!o.name)continue;
+    await api('POST','/api/employees',{id:o.id,name:o.name,from:o.from,to:o.to,machines:(o.machines||machines[0]?.MachineBoxId||'').split(/[|]/).filter(Boolean)});n++}vEmp();return n},n=>`Đã nhập ${n} nhân viên. Thêm ảnh để đẩy lên thiết bị.`)}
+function impPhotos(fs){run(async()=>{let n=0,miss=[];for(const f of fs){const id=f.name.replace(/\.[^.]+$/,'');if(!emps.find(e=>e.id==id)){miss.push(f.name);continue}
+  toast(`Đang tải ảnh ${n+1}/${fs.length}…`,60000);await api('POST','/api/employees',{id,photo:await shrink(f)});n++}vEmp();return{n,miss}},r=>`Đã gắn ${r.n} ảnh`+(r.miss.length?` · bỏ qua (không có mã): ${r.miss.join(', ')}`:''))}
+
+// ---- Lịch sử ----
+async function vLogs(){main.innerHTML=`<div class="bar"><input type="date" id="lf" value="${today}"><input type="date" id="lt" value="${today}"><select id="lm">${mopts(true)}</select><input id="lp" placeholder="Mã NV" size="8">
+<button class="b g" onclick="loadLogs()">Xem</button><span class="grow"></span><button class="b" onclick="syncLogs()">Đồng bộ từ thiết bị</button><button class="b g" onclick="download('/api/export/logs.csv?'+lq())">Xuất CSV</button></div><div class="t" id="tb"></div>`;loadLogs()}
+const lq=()=>new URLSearchParams({from:$('#lf').value,to:$('#lt').value,m:$('#lm').value,pid:$('#lp').value.trim()});
+const loadLogs=()=>run(async()=>{const l=await api('GET','/api/logs?'+lq());$('#tb').innerHTML=l.length?`<table><tr><th>Thời gian</th><th>Mã</th><th>Họ tên</th><th>Thiết bị</th><th>Nhiệt độ</th></tr>${l.map(x=>`<tr><td>${x.time}</td><td>${esc(x.pid)}</td><td>${esc(x.name)}</td><td>${esc(mname(x.m))}</td><td>${x.temp??''}</td></tr>`).join('')}</table>`:'<div class="empty">Không có dữ liệu trong khoảng này. Bấm “Đồng bộ từ thiết bị” để tải về.</div>'});
+const syncLogs=()=>run(async()=>{const ms=$('#lm').value?[$('#lm').value]:machines.map(m=>m.MachineBoxId);let n=0;for(const m of ms){toast('Đang đồng bộ '+mname(m)+'…',60000);n+=(await api('POST','/api/sync-logs',{m,from:$('#lf').value,to:$('#lt').value})).added}loadLogs();return n},n=>`Đã thêm ${n} lượt chấm công mới`);
+
+// ---- Bảng công ----
+async function vRep(){main.innerHTML=`<div class="bar"><input type="month" id="rm" value="${month}" onchange="loadRep()"><span class="grow"></span><span style="color:var(--mut)">Đi muộn: vào sau ${start}</span><button class="b g" onclick="download('/api/export/report.csv?month='+$('#rm').value)">Xuất CSV</button></div><div class="t" id="tb"></div>`;loadRep()}
+const loadRep=()=>run(async()=>{const r=await api('GET','/api/report?month='+$('#rm').value),ds=[...Array(31)].map((_,i)=>String(i+1).padStart(2,'0'));
+  $('#tb').innerHTML=r.length?`<table><tr><th>Mã</th><th>Họ tên</th><th>Ngày công</th><th>Giờ</th><th>Muộn</th>${ds.map(d=>`<th>${+d}</th>`).join('')}</tr>${r.map(x=>`<tr><td>${esc(x.pid)}</td><td>${esc(x.name)}</td><td>${x.workDays}</td><td>${x.hours}</td><td class="${x.late?'warn':''}">${x.late}</td>${ds.map(d=>`<td class="c">${x.days[d]?x.days[d][0]+'<br>'+(x.days[d][1]!=x.days[d][0]?x.days[d][1]:''):''}</td>`).join('')}</tr>`).join('')}</table>`:'<div class="empty">Tháng này chưa có dữ liệu. Đồng bộ lịch sử ở tab “Lịch sử chấm công”.</div>'});
+
+// ---- Thiết bị ----
+async function vDev(){main.innerHTML=`<div class="bar"><select id="sf">${mopts()}</select> → <select id="st">${mopts()}</select><button class="b g" onclick="syncFaces()">Sao chép khuôn mặt sang thiết bị khác</button></div>
+<div class="t"><table><tr><th>Tên</th><th>Mã thiết bị</th><th>MachineBoxId</th><th>Báo online gần nhất</th><th></th></tr>${machines.map(m=>`<tr><td>${esc(m.MachineName)}</td><td>${esc(m.MachineCode)}</td><td>${m.MachineBoxId}</td><td>${esc(m.lastSeen||'—')}</td><td><button class="b d" onclick="clearAll('${m.MachineBoxId}')">Xóa toàn bộ khuôn mặt</button></td></tr>`).join('')||'<tr><td colspan=5 class="empty">Không có thiết bị</td></tr>'}</table></div>
+<p style="color:var(--mut)">Để nhận chấm công tức thời, nhập vào trang quản trị Dahahi: <b>CallBack Api Url</b> = <code>${location.origin}/callback/checkin</code> và <b>Heat Beat Api Url</b> = <code>${location.origin}/callback/heartbeat</code> (server cần truy cập được từ internet).</p>`;}
+const syncFaces=()=>{const a=$('#sf').value,b=$('#st').value;a&&b&&a!=b?confirm('Sao chép toàn bộ khuôn mặt từ '+mname(a)+' sang '+mname(b)+'?')&&run(()=>api('POST','/api/sync-faces',{from:a,to:b}),()=>'Đã gửi lệnh đồng bộ'):toast('Chọn hai thiết bị khác nhau')};
+const clearAll=m=>confirm('Xóa TOÀN BỘ khuôn mặt trên '+mname(m)+'? Thiết bị sẽ tự khởi động lại và không thể hoàn tác.')&&prompt('Gõ XOA để xác nhận')==='XOA'&&run(()=>api('POST','/api/clear',{m}),()=>'Đã xóa toàn bộ trên thiết bị');
+
+async function vSet(){const c={host:'',hasSecret:false,mock:false};
+main.innerHTML=`<div class="t cf" style="padding:20px;max-width:540px;max-height:none;margin-bottom:20px"><h3 style="margin:0 0 4px">Thêm kết nối máy chấm công</h3>
+<label>Loại máy</label><input value="DAHAHI" disabled>
+<label>Tên thiết bị</label><input id="cn" placeholder="Máy chấm công Dahahi">
+<label>Website của Dahahi (địa chỉ riêng của đơn vị, dạng ten_mien.dahahi.vn)</label><input id="sh" value="${esc(c.host)}" placeholder="https://ten_mien.dahahi.vn">
+<label>Api Secret Key (web Dahahi → Cài đặt → Tích hợp API)</label><input id="ss" type="password" placeholder="${c.hasSecret?'Đã lưu — để trống nếu không đổi':'Dán Api Secret Key'}">
+<label>Mã thiết bị (web Dahahi → Thiết bị, cột Tên thiết bị, dòng dưới)</label><input id="cb" placeholder="Ví dụ 1468063">
+<label class="ck2"><input type="checkbox" id="sm" ${c.mock?'checked':''}>Chế độ demo (dữ liệu giả, dùng thử không cần máy thật)</label>
+<div class="bar" style="margin:16px 0 0"><button class="b" onclick="connect()">Kết nối</button></div><div id="sr" style="margin-top:12px"></div></div>
+<h3 style="margin:0 0 8px">Máy đã kết nối</h3><div class="t">${machines.length?`<table><tr><th>Tên thiết bị</th><th>Mã thiết bị</th><th>Báo online gần nhất</th><th></th></tr>${machines.map(m=>`<tr><td>${esc(m.MachineName)}</td><td>${esc(m.MachineBoxId)}</td><td>${esc(m.lastSeen||'—')}</td><td><button class="b d" onclick="disc('${m.MachineBoxId}')">Ngắt kết nối</button></td></tr>`).join('')}</table>`:'<div class="empty">Chưa kết nối máy nào. Điền form phía trên rồi bấm “Kết nối”.</div>'}</div>`;api('GET','/api/settings').then(c=>{$('#sh').value=c.host||'';$('#sm').checked=!!c.mock;if(c.hasSecret)$('#ss').placeholder='Đã lưu — để trống nếu không đổi'}).catch(()=>{})}
+const connect=()=>run(async()=>{const r=await api('POST','/api/connect',{name:$('#cn').value,host:$('#sh').value,secret:$('#ss').value,box:$('#cb').value,mock:$('#sm').checked});
+  if(!r.ok){$('#sr').innerHTML=`<span class="warn"><b>Chưa kết nối được:</b> ${esc(r.error)}</span>`;return r}
+  machines=await api('GET','/api/machines');$('#demo').hidden=!$('#sm').checked;vSet();return r},r=>r.ok?'Kết nối máy thành công':'Kết nối thất bại');
+const disc=box=>confirm('Ngắt kết nối máy này khỏi app? (nhân viên trên máy không bị xóa)')&&run(async()=>{await api('DELETE','/api/connect?box='+box);machines=await api('GET','/api/machines').catch(()=>[]);vSet()});
+if(location.protocol==='file:')$('#warn').hidden=false;
+const views={set:vSet,emp:vEmp,logs:vLogs,rep:vRep,dev:vDev};
+$('#nav').onclick=e=>{const v=e.target.dataset.v;if(!v)return;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b==e.target));run(views[v])};
+(async()=>{const i=await api('GET','/api/info').catch(()=>({}));start=i.start||start;machines=await api('GET','/api/machines').catch(e=>{toast('Không lấy được thiết bị: '+e.message,8000);return[]});$('#demo').hidden=!i.mock;machines.length?vEmp():document.querySelector('[data-v=set]').click()})();
+</script></body></html>
